@@ -1,12 +1,15 @@
 import { StatusBar } from "expo-status-bar";
 import { StyleSheet, Text, View } from "react-native";
+import { PaperProvider } from "react-native-paper";
 
 export default function App() {
   return (
-    <View style={styles.container}>
-      <Text>React Beat Counter (with web support)</Text>
-      <StatusBar style="auto" />
-    </View>
+    <PaperProvider>
+      <View style={styles.container}>
+        <Text>React Beat Counter (with web and paper support)</Text>
+        <StatusBar style="auto" />
+      </View>
+    </PaperProvider>
   );
 }
 
