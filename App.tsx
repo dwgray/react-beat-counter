@@ -32,12 +32,26 @@ enum ClickState {
   Done,
 }
 
+/// I'm managing state and handling "business logic" such as is deirectly in my App component - this won't scale beyond
+/// a fairly simple application, but seems like a reasonably clean solution for this very small application
+
 export default function App() {
+  // beat (no meter), 2/4 (double), 3/4 (waltz) or 4/4 (common).  Note that the only place that
+  //  setMeter should be called is in updateMeter, so that the internal state is kept consistent.
+  //  I did not see a way in React to wrap a private setMeter functionwith my additional logic
+  //  useReducer looked promising, but doesn't appears to be designed for a different purpose (dispatch model)
   const [meter, setMeter] = useState(Meter.Common);
+  // Does the user want to count by beats of by measures.  As with setMeter, setMehod should only
+  //  be called within updateMethod.
   const [method, setMethod] = useState(CountMethod.Measure);
+  // A simple state machine to track whether the user has started counting, etc. this is used to manage
+  //   the rest of the internal state and helps when compute the title of the click button
   const [clickState, setClickState] = useState(ClickState.Initial);
+  // The epoch timestamp of the most recent click (or 0 if in initial/done state)
   const [lastClick, setLastClick] = useState(0);
+  // The last 10 intervals between click s in ticks (which may be rescaled based on meter/method)
   const [intervals, setIntervals] = useState([] as number[]);
+  // The id used to clear the timeout handler
   const [timeoutId, setTimeoutId] = useState(null as number | null);
   // I'm using a ref so that I can access current state in the timeout callback
   //  It appears the alternative would be to create a count reference object
@@ -49,8 +63,11 @@ export default function App() {
   const maxWait = 5000;
 
   const avg = intervals.reduce((p, a) => p + a, 0) / intervals.length;
+  // Clicks per minute - computed from the last ten intevals between clicks
   const cpm = intervals.length === 0 ? 0 : (60 * 1000) / avg;
+  // Beats per minute calculated from clicks per minute and meter
   const bpm = method === CountMethod.Beat ? cpm : cpm * meter;
+  //  Measures per minute calculated from clicks per minute and meter
   const mpm = method === CountMethod.Measure ? cpm : cpm / meter;
   const initialLabel =
     method === CountMethod.Beat
@@ -60,9 +77,12 @@ export default function App() {
     clickState === ClickState.FirstClick || clickState === ClickState.Counting
       ? "Again"
       : initialLabel;
-  stateRef.current = clickState;
-  console.log(`Enter- state = ${clickState}`);
 
+  // Keep our "outside of react" reference current so the timer callback has access to it
+  stateRef.current = clickState;
+
+  /// Handle the click event on the counting button - this updates the click state to manage
+  /// the core internal state machine an resets the timeout
   function onClick(): void {
     const now = Date.now();
     if (timeoutId) {
@@ -90,11 +110,14 @@ export default function App() {
     }
     setTimeoutId(window.setTimeout(onTimeout, maxWait));
 
+    // Timeout handler that sets the state to done or initial once the user has stopped clicking
+    // for _maxWait milliseconds.  Note that I have to use stateRef, which is a wrapper around
+    // clickState rather than using clickState directly since the closure in this function preserves
+    // the initial valud of clickState
     function onTimeout(): void {
       switch (stateRef.current) {
         case ClickState.Initial:
         case ClickState.FirstClick:
-          console.log("Timeout: Current");
           setClickState(ClickState.Initial);
           setIntervals([]);
           setLastClick(0);
@@ -102,12 +125,12 @@ export default function App() {
         case ClickState.Counting:
         case ClickState.Done:
           setClickState(ClickState.Done);
-          console.log("Timeout: Counting");
           break;
       }
     }
   }
 
+  // Update the meter and recalculate the intervals if necessary to keep BPMs consistent
   function updateMeter(value: Meter): void {
     if (method === CountMethod.Measure) {
       convertIntervals(meter, value);
@@ -115,6 +138,7 @@ export default function App() {
     setMeter(value);
   }
 
+  // Update the count method and recalculate the intervals if necessary to keep BPMs consistent
   function updateMethod(value: CountMethod): void {
     switch (value) {
       case CountMethod.Beat:
@@ -127,10 +151,15 @@ export default function App() {
     setMethod(value);
   }
 
+  // Convert intervals to the new meter, keeping bmp constant
   function convertIntervals(oldMeter: Meter, newMeter: Meter): void {
     setIntervals(intervals.map((x) => Math.round(x / oldMeter) * newMeter));
   }
 
+  // The main (and currently only) View is wrapped in a PaperProvider to allow the use of the
+  //  React Native Paper Library: https://reactnativepaper.com/ - I'm using this for a more
+  //  versitile button and SegmentedButtons.  The button is still not quite what I want, but
+  //  I'm not going to do another round at finding exactly control I want for this pass.
   return (
     <PaperProvider>
       <View style={styles.container}>
