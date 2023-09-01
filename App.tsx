@@ -1,12 +1,19 @@
 import { useRef, useState } from "react";
 import { StatusBar } from "expo-status-bar";
-import { StyleSheet, Text, View } from "react-native";
 import {
-  Button,
+  GestureResponderEvent,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import {
   SegmentedButtons,
   PaperProvider,
   Appbar,
+  useTheme,
 } from "react-native-paper";
+import { deepPurple100 } from "react-native-paper/lib/typescript/styles/themes/v2/colors";
 
 enum Meter {
   Beat = 1,
@@ -31,6 +38,18 @@ enum ClickState {
   Counting,
   Done,
 }
+
+const CounterButton = ({
+  onPress,
+  title,
+}: {
+  onPress: (e: GestureResponderEvent) => void;
+  title: string;
+}) => (
+  <TouchableOpacity onPress={onPress} style={styles.button}>
+    <Text style={styles.buttonText}>{title}</Text>
+  </TouchableOpacity>
+);
 
 /// I'm managing state and handling "business logic" such as is deirectly in my App component - this won't scale beyond
 /// a fairly simple application, but seems like a reasonably clean solution for this very small application
@@ -72,7 +91,7 @@ export default function App() {
   const initialLabel =
     method === CountMethod.Beat
       ? "Click on each beat"
-      : `Click each ${meter}/4 measure`;
+      : `Click on downbeat of ${meter}/4 measure`;
   const clickLabel =
     clickState === ClickState.FirstClick || clickState === ClickState.Counting
       ? "Again"
@@ -170,11 +189,7 @@ export default function App() {
             titleStyle={{ alignSelf: "center" }}
           />
         </Appbar.Header>
-        <Button mode="contained" onPress={onClick} style={styles.button}>
-          <Text style={{ fontSize: 20, alignSelf: "baseline" }}>
-            {clickLabel}
-          </Text>
-        </Button>
+        <CounterButton onPress={onClick} title={clickLabel} />
         {meter !== Meter.Beat && (
           <View style={styles.card}>
             <Text style={styles.cardText}>{mpm.toFixed(1)} MPM</Text>
@@ -227,9 +242,17 @@ const styles = StyleSheet.create({
   button: {
     flex: 2,
     margin: 25,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    elevation: 8,
+    borderRadius: 20,
+    backgroundColor: "#6750A4",
     justifyContent: "center",
-    fontSize: 25,
-    compact: true,
+  },
+  buttonText: {
+    fontSize: 35,
+    color: "white",
+    textAlign: "center",
   },
   card: {
     flex: 2,
