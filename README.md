@@ -1,4 +1,4 @@
-# flutter_beat_counter
+# react-beat-counter
 
 A simple beat counter written in [React Native ](https://reactnative.dev/)
 
